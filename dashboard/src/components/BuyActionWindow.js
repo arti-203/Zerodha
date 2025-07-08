@@ -12,7 +12,7 @@ const BuyActionWindow = ({ uid }) => {
   const [stockPrice, setStockPrice] = useState(0.0);
 
   const handleBuyClick = () => {
-    axios.post("http://localhost:3002/newOrder", {
+    axios.post("http://localhost:3002/newOrders", {
       name: uid,
       qty: stockQuantity,
       price: stockPrice,
@@ -27,6 +27,7 @@ const BuyActionWindow = ({ uid }) => {
   };
 
   return (
+
     <div className="container" id="buy-window" draggable="true">
       <div className="regular-order">
         <div className="inputs">
@@ -57,16 +58,15 @@ const BuyActionWindow = ({ uid }) => {
       <div className="buttons">
         <span>Margin required ₹140.65</span>
         <div>
-          <Link className="btn btn-blue" onClick={handleBuyClick}>
+          <button className="btn btn-blue" onClick={handleBuyClick}>
             Buy
-          </Link>
-          <Link to="" className="btn btn-grey" onClick={handleCancelClick}>
+          </button>
+          <button to="" className="btn btn-grey" onClick={handleCancelClick}>
             Cancel
-          </Link>
+          </button>
         </div>
       </div>
     </div>
   );
 };
 
-export default BuyActionWindow;

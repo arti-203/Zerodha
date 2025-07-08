@@ -2,14 +2,28 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 
+// const { UserModel } = require("./model/UserModel");
+// const bcrypt = require("bcryptjs");
+// const jwt = require("jsonwebtoken");
+// const JWT_SECRET = "your_secret_key";
+
+//const bodyParser = require("body-parser");
+const cors = require("cors");
+
 const PORT = process.env.PORT || 3002;
 const uri = process.env.MONGO_URL;
 
 const {HoldingsModel}=require('./model/HoldingsModel');
 
-const app = express();
+const { PositionsModel } = require('./model/PositionsModel');
+const { OrdersModel } = require("./model/OrdersModel");
 
+const app = express();
+app.use(cors());
+//app.use(bodyParser.json());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 
 // app.get("/addHoldings", async (req, res) => {
 //     let tempHoldings = [
@@ -141,44 +155,158 @@ app.use(express.json());
 
 // MongoDB Connection
 
-app.get("/addPositions", async (req, res) => {
-    let tempPositions = [
-     {
-    product: "CNC",
-    name: "EVEREADY",
-    qty: 2,
-    avg: 316.27,
-    price: 312.35,
-    net: "+0.58%",
-    day: "-1.24%",
-    isLoss: true,
-  },
-  {
-    product: "CNC",
-    name: "JUBLFOOD",
-    qty: 1,
-    avg: 3124.75,
-    price: 3082.65,
-    net: "+10.04%",
-    day: "-1.35%",
-    isLoss: true,
-  },   
-    ];
-    tempHoldings.forEach((item) => {
-     let newHolding = new HoldingsModel({
-         name: item.name,
-         qty: item.qty,
-        avg: item.avg,
-         price: item.price,
-         net: item.day,
-         day: item.day,
+// app.get("/addPositions", async (req, res) => {
+//     let tempPositions = [
+//      {
+//     product: "CNC",
+//     name: "EVEREADY",
+//     qty: 2,
+//     avg: 316.27,
+//     price: 312.35,
+//     net: "+0.58%",
+//     day: "-1.24%",
+//     isLoss: true,
+//   },
+//   {
+//     product: "CNC",
+//     name: "JUBLFOOD",
+//     qty: 1,
+//     avg: 3124.75,
+//     price: 3082.65,
+//     net: "+10.04%",
+//     day: "-1.35%",
+//     isLoss: true,
+//   },   
+//     ];
+//     tempPositions.forEach((item) => {
+//      let newPosition = new PositionsModel({
+//          name: item.name,
+//          qty: item.qty,
+//         avg: item.avg,
+//          price: item.price,
+//          net: item.day,
+//          day: item.day,
+//     });
+
+//      newPosition.save();
+//  });
+//    res.send("Done!");
+//  });
+
+app.get("/allHoldings", async (requestAnimationFrame, res) => {
+  let allHoldings = await HoldingsModel.find({});
+  res.json(allHoldings)
+});
+
+app.get("/allPositions", async (requestAnimationFrame, res) => {
+  let allPositions = await PositionsModel.find({});
+  res.json(allPositions)
+});
+
+
+// 
+app.post("/newOrders", async (req, res) => {
+  const { name, qty, price, mode } = req.body;
+
+  if (!name || !qty || !price || !mode) {
+    return res.status(400).send("Missing required fields: name, qty, price, mode");
+  }
+
+  try {
+    let newOrder = new OrdersModel({
+      name,
+      qty,
+      price,
+      mode,
     });
 
-     newPosition.save();
- });
-   res.send("Done!");
- });
+    await newOrder.save();
 
+    res.send("Order saved successfully!");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error saving order");
+  }
+});
+
+const userSchema = new mongoose.Schema({
+  name: String,
+  email: String,
+  password: String,
+});
+const UserModel = mongoose.model("User", userSchema);
+
+//  Signup route 
+app.post("/signup", async (req, res) => {
+  const { name, email, password } = req.body;
+
+  if (!name || !email || !password) {
+    return res.status(400).send("All fields are required");
+  }
+
+  try {
+    const newUser = new UserModel({ name, email, password });
+    await newUser.save();
+    res.send("User registered successfully");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error signing up");
+  }
+});
+
+app.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const user = await UserModel.findOne({ email });
+
+    if (!user || user.password !== password) {
+      return res.status(401).send("Invalid email or password");
+    }
+
+    res.send("Login successful");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error");
+  }
+});
+
+
+// Signup Route
+// app.post("/signup", async (req, res) => {
+//   const { name, email, password } = req.body;
+//   if (!name || !email || !password)
+//     return res.status(400).send("Please fill all fields");
+
+//   const existingUser = await UserModel.findOne({ email });
+//   if (existingUser)
+//     return res.status(400).send("User already exists");
+
+//   const hashedPassword = await bcrypt.hash(password, 10);
+
+//   const newUser = new UserModel({ name, email, password: hashedPassword });
+//   await newUser.save();
+
+//   res.send("User created successfully");
+// });
+
+// Login Route
+// app.post("/login", async (req, res) => {
+//   const { email, password } = req.body;
+//   if (!email || !password)
+//     return res.status(400).send("Please fill all fields");
+
+//   const user = await UserModel.findOne({ email });
+//   if (!user)
+//     return res.status(400).send("Invalid credentials");
+
+//   const isMatch = await bcrypt.compare(password, user.password);
+//   if (!isMatch)
+//     return res.status(400).send("Invalid credentials");
+
+//   const token = jwt.sign({ id: user._id }, JWT_SECRET);
+//   res.json({ token, user: { name: user.name, email: user.email } });
+// });
 
 
 mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
